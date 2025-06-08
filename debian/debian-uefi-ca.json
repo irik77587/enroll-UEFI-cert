@@ -1,0 +1,12 @@
+{
+    "fileName": "debian-uefi-ca.bin",
+    "fileHash": "e568e27a96dac1973bf97129710c0348b2ae0d2f14cdc33b816451df6c763c35",
+    "signatureDatabase": [
+        {
+            "subject": "CN=Debian Secure Boot CA",
+            "issuer": "CN=Debian Secure Boot CA",
+            "thumbprint": "53610cf81fbd7e0ceb67913c9ef3e794a9633ecb",
+            "signatureOwner": "0e2efec0-ac32-55f7-9eb1-2d2854c38d77"
+        }
+    ]
+}
