@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-import struct
-import sys
+
+# for generating binary data buffers
+from struct import pack
+
+# for terminating application on validation check failure
+for sys import exit
+
+# for parsing argument and usage message
 import argparse
+
+# for type-validation of argument
 from pathlib import Path
 from uuid import UUID
+from string import hexdigits
+
+# for managing configuration flags
 from enum import Enum
-import string
+
 # for PEM and DER certificate validation and interconvertion
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -38,9 +49,9 @@ def create_esl_meta(certificate_size = None):
     # ESL_META for digest
     if certificate_size == None: return b''.join([ESL_HASH_GUID_BUFFER, SINGLE_DIGEST_ESL_FILE_SIZE_BUFFER, ESL_HEAD_SIZE_BUFFER, ESL_HASH_SIZE_BUFFER])
     # ESL_META for DER certificate
-    esl_data_size_buffer = struct.pack('<I', OWNER_GUID_SIZE + certificate_size)
+    esl_data_size_buffer = pack('<I', OWNER_GUID_SIZE + certificate_size)
     esl_file_size = ESL_META_SIZE + OWNER_GUID_SIZE + certificate_size
-    esl_file_size_buffer = struct.pack('<I', esl_file_size)
+    esl_file_size_buffer = pack('<I', esl_file_size)
     return b''.join([ESL_X509_GUID_BUFFER, esl_file_size_buffer, ESL_HEAD_SIZE_BUFFER, esl_data_size_buffer])
 
 def job_router(output_file_size, config_flag, certificate_file, digest_buffer, output_file, signature_owner_guid):
@@ -59,7 +70,7 @@ def job_router(output_file_size, config_flag, certificate_file, digest_buffer, o
         # Update file size
         with open(output_file.name, 'r+b') as output_file:
             output_file.seek(0x10)
-            output_file.write(struct.pack('<I', output_file_size + ESL_HASH_SIZE))
+            output_file.write(pack('<I', output_file_size + ESL_HASH_SIZE))
     
     if config_flag == CONFIG_PRESETS.ESL_HASH_CREATE:
         esl_meta_buffer = create_esl_meta() # parameter = None, default meta for digest
@@ -85,7 +96,7 @@ def job_router(output_file_size, config_flag, certificate_file, digest_buffer, o
                 except:
                     print("❌ Not a valid PEM or DER X.509 certificate")
                     output_file.close()
-                    sys.exit(1)
+                    exit(1)
         # write ESL certificate file
         with output_file as output_file:
             output_file.write(esl_meta_buffer)
@@ -110,7 +121,7 @@ def validate_arguments(append, outfile):
     if not append and outfile_size > 0:
         print(f"Error: File '{outfile.name}' already exists and is not empty. Use --append to append.")
         outfile.close()
-        sys.exit(1)
+        exit(1)
     return outfile_size
 
 def format_arguments():
@@ -122,13 +133,13 @@ def format_arguments():
         "if certificate is provided, will append generated the ESL content to the existing output file")
     
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-d", "--digest", metavar='YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY', type=SHA256_bytes, help="SHA256 digest")
+    group.add_argument("-d", "--digest", metavar=f'hexadecimal_digits({HASH_LENGTH})', type=SHA256_bytes, help="SHA256 digest")
     group.add_argument("-c", "--cert", metavar='CERT.der', type=argparse.FileType('rb', 0), help="path to input file - X.509 PEM or DEM certificate")
     
     return parser.parse_args()
 
 def SHA256_bytes(s):
-    if len(s) == HASH_LENGTH and all(c in string.hexdigits for c in s): return int(s, 16).to_bytes(32, 'big')
-    raise argparse.ArgumentTypeError(f"Invalid hex digest: {s} SHA256 sum must be 64 characters and only contain 0-9a-fA-F")
+    if len(s) == HASH_LENGTH and all(c in hexdigits for c in s): return int(s, 16).to_bytes(32, 'big')
+    raise argparse.ArgumentTypeError(f"Invalid digest: {s} SHA256 sum must be 64 characters and only contain 0-9a-fA-F")
 
 if __name__ == "__main__": main()
